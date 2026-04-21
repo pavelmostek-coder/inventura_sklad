@@ -332,6 +332,39 @@
       font-size: 0.72rem;
       line-height: 1.1;
     }
+
+    .modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(2, 6, 23, 0.78);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1200;
+      padding: 1rem;
+    }
+
+    .modal.open {
+      display: flex;
+    }
+
+    .modalCard {
+      width: 100%;
+      max-width: 460px;
+      background: #0f172a;
+      border: 1px solid rgba(59, 130, 246, 0.4);
+      border-radius: 0.8rem;
+      padding: 0.8rem;
+      box-shadow: 0 20px 40px rgba(2, 6, 23, 0.85);
+    }
+
+    .modalActions {
+      margin-top: 0.6rem;
+      display: flex;
+      justify-content: flex-end;
+      gap: 0.4rem;
+      flex-wrap: wrap;
+    }
   </style>
 </head>
 <body>
@@ -382,7 +415,6 @@
 
         <div class="footer-row">
           <div class="small" id="summaryText">Načteno 0 položek.</div>
-          <button id="exportBtn">Exportovat inventuru (CSV)</button>
         </div>
       </section>
 
@@ -406,12 +438,6 @@
         <div class="small" style="margin-top:0.2rem;">
           • V módu <strong>Položka</strong> se podle naskenovaného EAN/QR vybere položka v seznamu.<br />
           • V módu <strong>Množství</strong> se z naskenovaného SSCC (pokud je to číslo) nastaví pole množství v řádku 3.
-        </div>
-
-        <div id="scanner"></div>
-
-        <div class="small" id="scanStatus" style="margin-top:0.3rem; opacity:0.8;">
-          Skener je vypnutý.
         </div>
       </section>
 
@@ -465,6 +491,27 @@
           </div>
         </div>
       </section>
+
+      <div class="footer-row">
+        <button id="exportBtn">Exportovat inventuru (CSV)</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="scanModal" class="modal" aria-hidden="true">
+    <div class="modalCard">
+      <h2 style="margin:0 0 0.4rem; font-size:1rem;">Skenování kódu</h2>
+      <div class="small" style="margin-bottom:0.3rem;">
+        Po naskenování zkontrolujte výsledek a potvrďte zavření okna.
+      </div>
+      <div id="scanner"></div>
+      <div class="small" id="scanStatus" style="margin-top:0.4rem; opacity:0.85;">
+        Skener je vypnutý.
+      </div>
+      <div class="modalActions">
+        <button type="button" class="secondary" id="closeScanBtn">Zrušit</button>
+        <button type="button" id="confirmScanBtn">Potvrdit a zavřít</button>
+      </div>
     </div>
   </div>
 
@@ -487,6 +534,9 @@
     const startScanBtn = document.getElementById('startScanBtn');
     const scannerDiv = document.getElementById('scanner');
     const scanStatus = document.getElementById('scanStatus');
+    const scanModal = document.getElementById('scanModal');
+    const closeScanBtn = document.getElementById('closeScanBtn');
+    const confirmScanBtn = document.getElementById('confirmScanBtn');
     const selectedInfo = document.getElementById('selectedInfo');
     const eanQtyText = document.getElementById('eanQtyText');
     const eanPackText = document.getElementById('eanPackText');
@@ -1034,6 +1084,17 @@
       }
     }
 
+    function openScanModal() {
+      scanModal.classList.add('open');
+      scanModal.setAttribute('aria-hidden', 'false');
+    }
+
+    async function closeScanModal() {
+      await stopScanner();
+      scanModal.classList.remove('open');
+      scanModal.setAttribute('aria-hidden', 'true');
+    }
+
     async function startScannerWithHtml5Qrcode() {
       scannerDiv.innerHTML = '';
       startScanBtn.textContent = 'Zastavit skenování';
@@ -1067,14 +1128,14 @@
     }
 
     function onScanSuccess(decodedText, decodedResult) {
-      // Po úspěšném naskenování rovnou zastavíme skener (jednorázové skenování).
+      // Po úspěšném naskenování zastavíme skener a čekáme na potvrzení zavření okna.
       stopScanner();
-
       if (scanMode === 'item') {
         handleItemScan(decodedText);
       } else {
         handleQtyScan(decodedText);
       }
+      scanStatus.textContent += ' Potvrďte zavření okna.';
     }
 
     function handleItemScan(codeText) {
@@ -1112,11 +1173,16 @@
     }
 
     startScanBtn.addEventListener('click', () => {
-      if (scanning) {
-        stopScanner();
-      } else {
-        startScanner();
-      }
+      openScanModal();
+      startScanner();
+    });
+
+    closeScanBtn.addEventListener('click', () => {
+      closeScanModal();
+    });
+
+    confirmScanBtn.addEventListener('click', () => {
+      closeScanModal();
     });
   </script>
 </body>
