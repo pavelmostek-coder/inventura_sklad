@@ -394,6 +394,17 @@
 
         <div class="row">
           <div>
+            <label>Lokace (číselník)</label>
+            <select id="locationSelect">
+              <option value="1">1:Sklad</option>
+              <option value="2">2:Dvůr</option>
+              <option value="3">3:Kůlna</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="row">
+          <div>
             <label>Vyhledat (kód / název / EAN)</label>
             <input type="text" id="search" placeholder="Začněte psát nebo naskenujte EAN..." />
           </div>
@@ -524,6 +535,7 @@
 
     // HTML prvky
     const fileInput = document.getElementById('fileInput');
+    const locationSelect = document.getElementById('locationSelect');
     const searchInput = document.getElementById('search');
     const tableBody = document.querySelector('#itemsTable tbody');
     const qtyInput = document.getElementById('qtyInput');
@@ -572,6 +584,10 @@
 
     function load() {
       const saved = localStorage.getItem('inventoryItems');
+      const savedLocation = localStorage.getItem('inventoryLocation');
+      if (savedLocation && locationSelect) {
+        locationSelect.value = savedLocation;
+      }
       if (saved) {
         try {
           items = JSON.parse(saved);
@@ -583,6 +599,10 @@
       }
       renderTable();
     }
+
+    locationSelect.addEventListener('change', () => {
+      localStorage.setItem('inventoryLocation', locationSelect.value);
+    });
 
     window.addEventListener('load', load);
 
@@ -861,8 +881,9 @@
 
     // ----- Export -----
     exportBtn.addEventListener('click', () => {
-      const header = 'KODSP;NAZEVSP;MNOŽSTVÍ';
+      const header = 'KODSP;NAZEVSP;LOKACE;MNOŽSTVÍ';
       const grouped = new Map();
+      const selectedLocation = String(locationSelect.value || '1');
 
       items.forEach(i => {
         const code = String(i.code || '').trim();
@@ -884,7 +905,7 @@
       });
 
       const rows = Array.from(grouped.entries()).map(([code, data]) =>
-        [code, data.name, data.qty].join(';')
+        [code, data.name, selectedLocation, data.qty].join(';')
       );
       // Excel na Windows očekává CRLF a často pomůže i UTF-8 BOM kvůli diakritice.
       const csv = [header, ...rows].join('\r\n');
