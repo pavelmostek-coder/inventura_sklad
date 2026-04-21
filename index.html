@@ -1,0 +1,1124 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8" />
+  <title>Inventura skladu</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #0f172a;
+      --bg-soft: #111827;
+      --fg: #e5e7eb;
+      --accent: #3b82f6;
+      --accent-soft: rgba(59,130,246,0.14);
+      --border: #1f2937;
+      --danger: #ef4444;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      padding: 1rem;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: radial-gradient(circle at top left, #1e293b, #020617);
+      color: var(--fg);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+    }
+
+    .app {
+      width: 100%;
+      max-width: 900px;
+      background: linear-gradient(135deg, rgba(15,23,42,0.9), rgba(15,23,42,0.98));
+      border-radius: 1rem;
+      border: 1px solid rgba(148,163,184,0.25);
+      box-shadow:
+        0 18px 45px rgba(15,23,42,0.9),
+        0 0 0 1px rgba(30,64,175,0.2);
+      padding: 1rem;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      margin-bottom: 0.75rem;
+    }
+
+    header h1 {
+      font-size: 1.25rem;
+      margin: 0;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    header h1 span {
+      font-weight: 300;
+      opacity: 0.8;
+    }
+
+    .tag {
+      font-size: 0.7rem;
+      padding: 0.1rem 0.45rem;
+      border-radius: 999px;
+      border: 1px solid rgba(148,163,184,0.5);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      opacity: 0.8;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+      gap: 0.75rem;
+    }
+
+    @media (max-width: 800px) {
+      .grid {
+        grid-template-columns: minmax(0, 1fr);
+      }
+    }
+
+    .card {
+      background: radial-gradient(circle at top left, rgba(30,64,175,0.22), rgba(15,23,42,0.95));
+      border-radius: 0.9rem;
+      border: 1px solid rgba(30,64,175,0.45);
+      padding: 0.8rem 0.9rem;
+    }
+
+    .card.secondary {
+      background: radial-gradient(circle at top right, rgba(6,95,70,0.16), rgba(15,23,42,0.94));
+      border-color: rgba(45,212,191,0.32);
+    }
+
+    .card h2 {
+      margin: 0 0 0.55rem;
+      font-size: 0.9rem;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      opacity: 0.85;
+    }
+
+    label {
+      font-size: 0.75rem;
+      opacity: 0.85;
+      display: block;
+      margin-bottom: 0.15rem;
+    }
+
+    input[type="file"],
+    input[type="text"],
+    input[type="number"],
+    select {
+      width: 100%;
+      padding: 0.45rem 0.55rem;
+      border-radius: 0.6rem;
+      border: 1px solid rgba(148,163,184,0.5);
+      background: rgba(15,23,42,0.9);
+      color: var(--fg);
+      font-size: 0.8rem;
+    }
+
+    input::placeholder {
+      color: rgba(148,163,184,0.7);
+    }
+
+    button {
+      border-radius: 999px;
+      border: 1px solid transparent;
+      padding: 0.45rem 0.8rem;
+      font-size: 0.8rem;
+      cursor: pointer;
+      background: linear-gradient(135deg, #2563eb, #4f46e5);
+      color: white;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      box-shadow: 0 10px 25px rgba(37,99,235,0.45);
+      white-space: nowrap;
+    }
+
+    button.secondary {
+      background: transparent;
+      border-color: rgba(148,163,184,0.6);
+      color: var(--fg);
+      box-shadow: none;
+    }
+
+    button:disabled {
+      opacity: 0.6;
+      cursor: default;
+      box-shadow: none;
+    }
+
+    .row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+      align-items: flex-end;
+      margin-bottom: 0.5rem;
+    }
+
+    .row > div {
+      flex: 1 1 160px;
+    }
+
+    .small {
+      font-size: 0.7rem;
+      opacity: 0.75;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 0.5rem;
+      font-size: 0.8rem;
+    }
+
+    th, td {
+      border-bottom: 1px solid rgba(31,41,55,0.9);
+      padding: 0.3rem 0.4rem;
+    }
+
+    th {
+      text-align: left;
+      font-weight: 500;
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      opacity: 0.8;
+    }
+
+    tbody tr {
+      cursor: pointer;
+      transition: background 0.12s ease;
+    }
+
+    tbody tr:hover {
+      background: rgba(55,65,81,0.65);
+    }
+
+    tbody tr.selected {
+      background: rgba(37,99,235,0.35);
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      padding: 0.1rem 0.4rem;
+      border-radius: 999px;
+      border: 1px solid rgba(148,163,184,0.5);
+      font-size: 0.65rem;
+      text-transform: uppercase;
+      letter-spacing: 0.09em;
+    }
+
+    #scanner {
+      width: 100%;
+      max-width: 380px;
+      margin-top: 0.4rem;
+      border-radius: 0.75rem;
+      overflow: hidden;
+      border: 1px solid rgba(30,64,175,0.5);
+      background: rgba(15,23,42,0.9);
+    }
+
+    #scanner video {
+      border-radius: 0.75rem;
+    }
+
+    .pill-group {
+      display: inline-flex;
+      gap: 0.3rem;
+      padding: 0.15rem;
+      background: rgba(15,23,42,0.95);
+      border-radius: 999px;
+      border: 1px solid rgba(148,163,184,0.35);
+    }
+
+    .pill {
+      padding: 0.1rem 0.55rem;
+      border-radius: 999px;
+      font-size: 0.7rem;
+      cursor: pointer;
+      opacity: 0.8;
+    }
+
+    .pill.active {
+      background: linear-gradient(135deg, #2563eb, #4f46e5);
+      color: white;
+      opacity: 1;
+    }
+
+    .footer-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 0.5rem;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    .layout {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .tableWrap {
+      --rowH: 32px;
+      max-height: calc(15 * var(--rowH));
+      overflow-x: auto;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    @media (max-width: 450px) {
+      body {
+        justify-content: flex-start;
+        padding: 0.6rem;
+      }
+
+      .app {
+        max-width: 412px;
+      }
+    }
+
+    #entriesList {
+      max-height: 110px;
+      overflow: auto;
+      -webkit-overflow-scrolling: touch;
+      padding: 0.4rem 0.5rem;
+      border-radius: 0.6rem;
+      border: 1px solid rgba(148,163,184,0.35);
+      background: rgba(15,23,42,0.65);
+      font-size: 0.75rem;
+      line-height: 1.35;
+    }
+
+    .entryItem {
+      padding: 0.15rem 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 0.75rem;
+      border-bottom: 1px dashed rgba(148,163,184,0.18);
+    }
+
+    .entryItem:last-child {
+      border-bottom: none;
+    }
+
+    .entryText {
+      display: inline-flex;
+      gap: 0.5rem;
+      align-items: center;
+    }
+
+    .entryDeleteBtn {
+      border: 1px solid rgba(239, 68, 68, 0.6);
+      background: rgba(127, 29, 29, 0.25);
+      color: #fecaca;
+      box-shadow: none;
+      padding: 0.15rem 0.45rem;
+      border-radius: 0.4rem;
+      min-width: 32px;
+      justify-content: center;
+      font-size: 0.72rem;
+      line-height: 1.1;
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div>
+        <h1>INVENTURA <span>skladová web app</span></h1>
+        <div class="small">Běží přímo v prohlížeči na Androidu, ukládá data lokálně.</div>
+      </div>
+      <div class="tag">Offline ready</div>
+    </header>
+
+    <div class="layout">
+      <!-- Řádek 1: seznam + vyhledávání -->
+      <section class="card">
+        <h2>Data &amp; vyhledávání</h2>
+
+        <div class="row">
+          <div>
+            <label>Načíst CSV se skladovými položkami</label>
+            <input type="file" id="fileInput" accept=".csv" />
+            <div class="small">
+              Formát pro <code>1701_nazvy.csv</code>: <code>kód;nazev;EAN_množství;EAN_balení;...</code>
+            </div>
+          </div>
+        </div>
+
+        <div class="row">
+          <div>
+            <label>Vyhledat (kód / název / EAN)</label>
+            <input type="text" id="search" placeholder="Začněte psát nebo naskenujte EAN..." />
+          </div>
+        </div>
+
+        <div class="tableWrap">
+          <table id="itemsTable">
+            <thead>
+              <tr>
+                <th>Kód</th>
+                <th>Název</th>
+                <th>EAN (množství)</th>
+                <th>EAN (balení)</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+
+        <div class="footer-row">
+          <div class="small" id="summaryText">Načteno 0 položek.</div>
+          <button id="exportBtn">Exportovat inventuru (CSV)</button>
+        </div>
+      </section>
+
+      <!-- Řádek 2: skener -->
+      <section class="card secondary">
+        <h2>Skenování</h2>
+
+        <div class="row" style="align-items:center;">
+          <div style="flex:1 1 auto;">
+            <label>Mód skeneru</label>
+            <div class="pill-group" id="scanModeGroup">
+              <div class="pill active" data-mode="item">Položka (EAN / QR)</div>
+              <div class="pill" data-mode="qty">Množství (SSCC → počet)</div>
+            </div>
+          </div>
+          <div style="flex:0 0 auto;">
+            <button id="startScanBtn">Skenovat čárový kód</button>
+          </div>
+        </div>
+
+        <div class="small" style="margin-top:0.2rem;">
+          • V módu <strong>Položka</strong> se podle naskenovaného EAN/QR vybere položka v seznamu.<br />
+          • V módu <strong>Množství</strong> se z naskenovaného SSCC (pokud je to číslo) nastaví pole množství v řádku 3.
+        </div>
+
+        <div id="scanner"></div>
+
+        <div class="small" id="scanStatus" style="margin-top:0.3rem; opacity:0.8;">
+          Skener je vypnutý.
+        </div>
+      </section>
+
+      <!-- Řádek 3: stav + zadání množství -->
+      <section class="card secondary">
+        <h2>Stav &amp; inventura</h2>
+
+        <div class="row">
+          <div style="flex:1 1 220px;">
+            <label>Vybraná položka</label>
+            <div class="small" id="selectedInfo">Žádná položka vybrána.</div>
+          </div>
+        </div>
+
+        <div class="row">
+          <div>
+            <label>EAN (množství)</label>
+            <div class="small" id="eanQtyText"></div>
+          </div>
+          <div>
+            <label>EAN (balení)</label>
+            <div class="small" id="eanPackText"></div>
+          </div>
+        </div>
+
+        <div class="row">
+          <div>
+            <label>Stav</label>
+            <div class="small" id="stockText">0</div>
+          </div>
+          <div>
+            <label>Inventura (sečteno)</label>
+            <div class="small" id="countedText">0</div>
+          </div>
+        </div>
+
+        <div class="row">
+          <div style="flex:1 1 100%;">
+            <label>Jednotlivá zadání (vybraná položka)</label>
+            <div id="entriesList" class="small">—</div>
+          </div>
+        </div>
+
+        <div class="row">
+          <div>
+            <label>Množství (ručně nebo po skenu SSCC)</label>
+            <input type="number" id="qtyInput" min="0" step="0.01" placeholder="Zadejte množství" />
+          </div>
+          <div style="flex:0 0 auto;">
+            <button id="addQtyBtn">Přičíst k vybrané položce</button>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <script>
+    // ----- Stav dat -----
+    // {code, name, eanQty, eanPack, stock, counted, entries:[{qty,ts}]}
+    let items = [];
+    let selectedIndex = -1;
+    let scanMode = 'item'; // 'item' | 'qty'
+
+    // HTML prvky
+    const fileInput = document.getElementById('fileInput');
+    const searchInput = document.getElementById('search');
+    const tableBody = document.querySelector('#itemsTable tbody');
+    const qtyInput = document.getElementById('qtyInput');
+    const addQtyBtn = document.getElementById('addQtyBtn');
+    const exportBtn = document.getElementById('exportBtn');
+    const summaryText = document.getElementById('summaryText');
+    const scanModeGroup = document.getElementById('scanModeGroup');
+    const startScanBtn = document.getElementById('startScanBtn');
+    const scannerDiv = document.getElementById('scanner');
+    const scanStatus = document.getElementById('scanStatus');
+    const selectedInfo = document.getElementById('selectedInfo');
+    const eanQtyText = document.getElementById('eanQtyText');
+    const eanPackText = document.getElementById('eanPackText');
+    const stockText = document.getElementById('stockText');
+    const countedText = document.getElementById('countedText');
+    const entriesList = document.getElementById('entriesList');
+
+    // ----- LocalStorage -----
+    function save() {
+      localStorage.setItem('inventoryItems', JSON.stringify(items));
+    }
+
+    function computeCountedFromEntries(entries) {
+      if (!Array.isArray(entries)) return 0;
+      return entries.reduce((sum, en) => {
+        const n = Number(en && en.qty);
+        return Number.isFinite(n) ? sum + n : sum;
+      }, 0);
+    }
+
+    function normalizeItem(rawItem) {
+      const entries = Array.isArray(rawItem && rawItem.entries) ? rawItem.entries : [];
+      return {
+        code: (rawItem && rawItem.code) || '',
+        name: (rawItem && rawItem.name) || '',
+        eanQty: (rawItem && (rawItem.eanQty ?? rawItem.ean)) || '',
+        eanPack: (rawItem && rawItem.eanPack) || '',
+        stock: Number(rawItem && rawItem.stock) || 0,
+        counted: computeCountedFromEntries(entries),
+        entries
+      };
+    }
+
+    function load() {
+      const saved = localStorage.getItem('inventoryItems');
+      if (saved) {
+        try {
+          items = JSON.parse(saved);
+          // Mírná kompatibilita s dřívější verzí (kde bylo jen `ean`)
+          items = (Array.isArray(items) ? items : []).map(normalizeItem);
+        } catch {
+          items = [];
+        }
+      }
+      renderTable();
+    }
+
+    window.addEventListener('load', load);
+
+    // ----- CSV import -----
+    fileInput.addEventListener('change', e => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = ev => {
+        try {
+          const raw = ev.target.result;
+          const lines = raw.split(/\r?\n/).filter(l => l.trim());
+
+          // Semicolon-oddělené CSV, kde mohou být pole v uvozovkách a obsahovat i semikola.
+          // (kvůli tomu nepoužíváme jen `line.split(';')`)
+          function parseSemicolonCsvLine(line) {
+            const out = [];
+            let cur = '';
+            let inQuotes = false;
+
+            for (let i = 0; i < line.length; i++) {
+              const ch = line[i];
+
+              if (ch === '"') {
+                // CSV escaped quote: "" uvnitř uvozovek
+                if (inQuotes && line[i + 1] === '"') {
+                  cur += '"';
+                  i++;
+                  continue;
+                }
+                inQuotes = !inQuotes;
+                continue;
+              }
+
+              if (ch === ';' && !inQuotes) {
+                out.push(cur);
+                cur = '';
+                continue;
+              }
+
+              cur += ch;
+            }
+
+            out.push(cur);
+            return out.map(v => String(v || '').trim());
+          }
+
+          function parseNumberCs(v) {
+            if (v === null || v === undefined) return null;
+            const s = String(v).trim().replace(/\s/g, '');
+            if (!s) return null;
+            const n = Number(s.replace(',', '.'));
+            return Number.isFinite(n) ? n : null;
+          }
+
+          const parsedItems = lines
+            .map(line => {
+              const fields = parseSemicolonCsvLine(line);
+              // Nový formát (1701_nazvy): [sklad; kod; nazev; EAN1; EAN2?; stock; stock_fyz? ...]
+              // Starší formát: může mít datum a další sloupce, ale hlavně nás zajímá kód a nějaké číslo.
+
+              // Bezpečné mapování pro nový formát
+              if (fields.length >= 4) {
+                const code = String(fields[1] || '').trim();
+                const name = String(fields[2] || '').trim();
+                const eanQty = String(fields[3] || '').trim();
+                const eanPack = String(fields[4] || '').trim();
+
+                // Vezmeme první číselnou hodnotu od indexu 5 výš jako "stav"
+                const stockCandidates = fields.slice(5);
+                const stock =
+                  stockCandidates
+                    .map(parseNumberCs)
+                    .find(v => v !== null) ?? 0;
+
+                // Pokud to nevypadá jako nový formát (chybí kód), zkusíme starší fallback
+                if (code) {
+                  return {
+                    code,
+                    name,
+                    eanQty,
+                    eanPack,
+                    stock,
+                    counted: 0,
+                    entries: []
+                  };
+                }
+              }
+
+              // Fallback: starší formát (kód bývá ve sloupci 1)
+              const code = String((fields[1] || fields[0] || '')).trim();
+              const stock =
+                [fields[3], fields[4], fields[5], fields[6]]
+                  .map(parseNumberCs)
+                  .find(v => v !== null) ?? 0;
+
+              return {
+                code,
+                name: '',
+                eanQty: '',
+                eanPack: '',
+                stock,
+                counted: 0,
+                entries: []
+              };
+            })
+            .filter(it => it.code); // prázdné řádky ignorujeme
+
+          // Při novém importu CSV začínáme čistě od nuly:
+          // vyčistit starou historii/součty a použít jen nově načtené položky.
+          items = parsedItems.map(normalizeItem);
+
+          selectedIndex = -1;
+          searchInput.value = '';
+          qtyInput.value = '';
+          save();
+          renderTable();
+
+          alert('Soubor byl úspěšně načten. Počet položek: ' + items.length);
+        } catch (err) {
+          console.error('Chyba při načítání CSV:', err);
+          alert('Nepodařilo se načíst CSV: ' + err);
+        }
+      };
+      reader.readAsText(file, 'utf-8');
+    });
+
+    // ----- Vyhledávání & tabulka -----
+    searchInput.addEventListener('input', renderTable);
+
+    function renderTable() {
+      const q = (searchInput.value || '').toLowerCase();
+      tableBody.innerHTML = '';
+
+      let visibleCount = 0;
+      let totalCounted = 0;
+
+      items.forEach((item, idx) => {
+        if (
+          !q ||
+          item.code.toLowerCase().includes(q) ||
+          item.name.toLowerCase().includes(q) ||
+          (item.eanQty || '').toLowerCase().includes(q) ||
+          (item.eanPack || '').toLowerCase().includes(q)
+        ) {
+          visibleCount++;
+          totalCounted += item.counted;
+
+          const tr = document.createElement('tr');
+          if (idx === selectedIndex) tr.classList.add('selected');
+
+          tr.innerHTML = `
+            <td>${escapeHtml(item.code)}</td>
+            <td>${escapeHtml(item.name)}</td>
+            <td>${escapeHtml(item.eanQty || '')}</td>
+            <td>${escapeHtml(item.eanPack || '')}</td>
+          `;
+
+          tr.addEventListener('click', () => {
+            selectedIndex = idx;
+            renderTable();
+          });
+
+          tableBody.appendChild(tr);
+        }
+      });
+
+      summaryText.textContent =
+        `Načteno ${items.length} položek, zobrazeno ${visibleCount}, sečteno kusů: ${totalCounted}.`;
+
+      updateSelectedPanel();
+    }
+
+    function updateSelectedPanel() {
+      if (selectedIndex < 0 || selectedIndex >= items.length) {
+        selectedInfo.textContent = 'Žádná položka vybrána.';
+        eanQtyText.textContent = '';
+        eanPackText.textContent = '';
+        stockText.textContent = '0';
+        countedText.textContent = '0';
+        entriesList.textContent = '—';
+        return;
+      }
+
+      const item = items[selectedIndex];
+      selectedInfo.textContent =
+        (item.code || '-') + (item.name ? ' • ' + item.name : '');
+      eanQtyText.textContent = item.eanQty || '';
+      eanPackText.textContent = item.eanPack || '';
+      stockText.textContent = String(item.stock ?? 0);
+      countedText.textContent = String(item.counted ?? 0);
+
+      const entries = Array.isArray(item.entries) ? item.entries : [];
+      if (entries.length === 0) {
+        entriesList.textContent = '—';
+        return;
+      }
+
+      const last = entries.slice(-12).reverse();
+      entriesList.innerHTML = last
+        .map((en, index) => {
+          const ts = en && en.ts ? new Date(en.ts) : null;
+          const time = ts ? ts.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+          const qty = en && Number.isFinite(Number(en.qty)) ? Number(en.qty) : '';
+          const left = qty === '' ? '(nezměřeno)' : ('+' + qty);
+          const right = time ? time : '';
+          const originalIdx = entries.length - 1 - index;
+          return `
+            <div class="entryItem">
+              <span class="entryText">
+                <span>${left}</span>
+                <span class="small">${right}</span>
+              </span>
+              <button type="button" class="entryDeleteBtn" data-entry-index="${originalIdx}" title="Smazat zadání">🗑</button>
+            </div>
+          `;
+        })
+        .join('');
+    }
+
+    function escapeHtml(str) {
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    // ----- Množství -----
+    addQtyBtn.addEventListener('click', () => {
+      if (selectedIndex < 0) {
+        alert('Nejprve vyberte položku kliknutím v tabulce (nebo ji naskenujte v módu Položka).');
+        return;
+      }
+
+      const raw = (qtyInput.value || '').toString().trim();
+      if (!raw) {
+        alert('Zadejte množství.');
+        return;
+      }
+
+      const qty = Number(raw);
+      if (!Number.isFinite(qty) || qty < 0) return;
+
+      const item = items[selectedIndex];
+      if (!Array.isArray(item.entries)) item.entries = [];
+      item.entries.push({ qty, ts: Date.now() });
+      item.counted = computeCountedFromEntries(item.entries);
+      save();
+      renderTable();
+
+      // Vyprázdnit pole po přičtení
+      qtyInput.value = '';
+      qtyInput.focus();
+    });
+
+    // ----- Mazání jednotlivého zadání -----
+    entriesList.addEventListener('click', e => {
+      const btn = e.target.closest('.entryDeleteBtn');
+      if (!btn) return;
+      if (selectedIndex < 0 || selectedIndex >= items.length) return;
+
+      const item = items[selectedIndex];
+      if (!Array.isArray(item.entries) || item.entries.length === 0) return;
+
+      const entryIndex = Number(btn.dataset.entryIndex);
+      if (!Number.isInteger(entryIndex) || entryIndex < 0 || entryIndex >= item.entries.length) return;
+
+      item.entries.splice(entryIndex, 1);
+      item.counted = computeCountedFromEntries(item.entries);
+
+      save();
+      renderTable();
+    });
+
+    // ----- Export -----
+    exportBtn.addEventListener('click', () => {
+      const header = 'KODSP;NAZEVSP;MNOŽSTVÍ';
+      const grouped = new Map();
+
+      items.forEach(i => {
+        const code = String(i.code || '').trim();
+        if (!code) return;
+        const qty = computeCountedFromEntries(i.entries);
+        const existing = grouped.get(code);
+
+        if (!existing) {
+          grouped.set(code, {
+            name: String(i.name || '').trim(),
+            qty
+          });
+          return;
+        }
+
+        existing.qty += qty;
+        // Když první název chybí, doplníme z dalšího výskytu
+        if (!existing.name && i.name) existing.name = String(i.name).trim();
+      });
+
+      const rows = Array.from(grouped.entries()).map(([code, data]) =>
+        [code, data.name, data.qty].join(';')
+      );
+      // Excel na Windows očekává CRLF a často pomůže i UTF-8 BOM kvůli diakritice.
+      const csv = [header, ...rows].join('\r\n');
+      const bom = '\uFEFF';
+      const blob = new Blob([bom + csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'inventura.csv';
+      a.click();
+      URL.revokeObjectURL(url);
+    });
+
+    // ----- Mód skeneru -----
+    scanModeGroup.addEventListener('click', e => {
+      const pill = e.target.closest('.pill');
+      if (!pill) return;
+      scanModeGroup.querySelectorAll('.pill').forEach(p => p.classList.remove('active'));
+      pill.classList.add('active');
+      scanMode = pill.dataset.mode === 'qty' ? 'qty' : 'item';
+      scanStatus.textContent =
+        scanMode === 'item'
+          ? 'Mód skeneru: Položka (čeká na spuštění).'
+          : 'Mód skeneru: Množství (čeká na spuštění).';
+    });
+
+    // ----- Skenování čárových kódů offline (BarcodeDetector) -----
+    // Používáme vestavěné rozpoznávání v prohlížeči (Chrome Android),
+    // bez nutnosti načítat knihovny z internetu.
+    let scanning = false;
+    let stream = null;
+    let videoEl = null;
+    let detector = null;
+    let scanLoopTimer = null;
+    let decodeBusy = false;
+    let html5QrCodeFallback = null;
+
+    function loadScriptOnce(src) {
+      return new Promise((resolve, reject) => {
+        const existing = document.querySelector(`script[data-src="${src}"]`);
+        if (existing) {
+          if (existing.dataset.loaded === '1') {
+            resolve();
+            return;
+          }
+          existing.addEventListener('load', () => resolve(), { once: true });
+          existing.addEventListener('error', () => reject(new Error('Script load failed')), { once: true });
+          return;
+        }
+
+        const script = document.createElement('script');
+        script.src = src;
+        script.async = true;
+        script.dataset.src = src;
+        script.addEventListener('load', () => {
+          script.dataset.loaded = '1';
+          resolve();
+        }, { once: true });
+        script.addEventListener('error', () => reject(new Error('Script load failed')), { once: true });
+        document.head.appendChild(script);
+      });
+    }
+
+    function parseQuantityFromScan(raw) {
+      const text = String(raw || '').trim();
+      if (!text) return null;
+
+      // GS1 (AI (37)) může být ve tvaru: (37) 12.000 nebo (37)12,000
+      const m37 = text.match(/\(?37\)?\s*([0-9.,]+)/);
+      if (m37) {
+        const n = Number(m37[1].replace(',', '.'));
+        return Number.isFinite(n) ? n : null;
+      }
+
+      // Fallback: pokud je to čisté číslo
+      const n = Number(text.replace(',', '.'));
+      return Number.isFinite(n) ? n : null;
+    }
+
+    async function startScanner() {
+      if (scanning) {
+        await stopScanner();
+        return;
+      }
+
+      if (!('BarcodeDetector' in window)) {
+        // Fallback pro zařízení/prohlížeče, kde BarcodeDetector není dostupný.
+        await startScannerWithHtml5Qrcode();
+        return;
+      }
+
+      scannerDiv.innerHTML = '';
+
+      videoEl = document.createElement('video');
+      videoEl.setAttribute('playsinline', 'true');
+      videoEl.setAttribute('muted', 'true');
+      videoEl.autoplay = true;
+      videoEl.style.width = '100%';
+      scannerDiv.appendChild(videoEl);
+
+      try {
+        scanStatus.textContent = 'Spouštím kameru...';
+        startScanBtn.textContent = 'Zastavit skenování';
+        scanning = true;
+
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: 'environment' }
+        });
+
+        videoEl.srcObject = stream;
+        await videoEl.play();
+
+        // Zkuste co nejširší sadu, ale některé formáty nemusí být podporované.
+        // BarcodeDetector umí i bez explicitního seznamu, takže když selže konstrukce, použijeme fallback.
+        try {
+          detector = new BarcodeDetector({
+            formats: [
+              'ean_13',
+              'ean_8',
+              'qr_code',
+              'code_128',
+              'upc_a',
+              'upc_e'
+            ]
+          });
+        } catch {
+          detector = new BarcodeDetector();
+        }
+
+        scanStatus.textContent = 'Skener běží – namiřte na kód.';
+        decodeBusy = false;
+
+        scanLoopTimer = window.setInterval(async () => {
+          if (!scanning || decodeBusy || !detector || !videoEl) return;
+          decodeBusy = true;
+          try {
+            const detections = await detector.detect(videoEl);
+            if (detections && detections.length > 0) {
+              const first = detections[0];
+              onScanSuccess(first.rawValue, first);
+            }
+          } catch {
+            // chyby čtení ignorujeme
+          } finally {
+            decodeBusy = false;
+          }
+        }, 250);
+      } catch (err) {
+        scanning = false;
+        startScanBtn.textContent = 'Skenovat čárový kód';
+        scanStatus.textContent = 'Nepodařilo se spustit kameru: ' + err;
+      }
+    }
+
+    async function stopScanner() {
+      scanning = false;
+      startScanBtn.textContent = 'Skenovat čárový kód';
+      scanStatus.textContent = 'Skener je vypnutý.';
+
+      if (scanLoopTimer) {
+        window.clearInterval(scanLoopTimer);
+        scanLoopTimer = null;
+      }
+
+      decodeBusy = false;
+
+      try {
+        if (stream) {
+          stream.getTracks().forEach(t => t.stop());
+          stream = null;
+        }
+      } catch {
+        // ignore
+      }
+
+      try {
+        if (videoEl) {
+          videoEl.pause();
+          videoEl.srcObject = null;
+        }
+      } catch {
+        // ignore
+      }
+
+      videoEl = null;
+      detector = null;
+      scannerDiv.innerHTML = '';
+
+      if (html5QrCodeFallback) {
+        try {
+          await html5QrCodeFallback.stop();
+          await html5QrCodeFallback.clear();
+        } catch {
+          // ignore
+        }
+        html5QrCodeFallback = null;
+      }
+    }
+
+    async function startScannerWithHtml5Qrcode() {
+      scannerDiv.innerHTML = '';
+      startScanBtn.textContent = 'Zastavit skenování';
+      scanStatus.textContent = 'BarcodeDetector není dostupný, spouštím fallback skener...';
+      scanning = true;
+
+      try {
+        await loadScriptOnce('https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js');
+        if (!window.Html5Qrcode) {
+          throw new Error('html5-qrcode se nenačetla');
+        }
+
+        html5QrCodeFallback = new window.Html5Qrcode('scanner');
+        await html5QrCodeFallback.start(
+          { facingMode: 'environment' },
+          {
+            fps: 10,
+            qrbox: { width: 240, height: 180 },
+            rememberLastUsedCamera: false
+          },
+          (decodedText, decodedResult) => onScanSuccess(decodedText, decodedResult),
+          () => {}
+        );
+
+        scanStatus.textContent = 'Fallback skener běží – namiřte na kód.';
+      } catch (err) {
+        scanning = false;
+        startScanBtn.textContent = 'Skenovat čárový kód';
+        scanStatus.textContent = 'Nepodařilo se spustit fallback skener: ' + err;
+      }
+    }
+
+    function onScanSuccess(decodedText, decodedResult) {
+      // Po úspěšném naskenování rovnou zastavíme skener (jednorázové skenování).
+      stopScanner();
+
+      if (scanMode === 'item') {
+        handleItemScan(decodedText);
+      } else {
+        handleQtyScan(decodedText);
+      }
+    }
+
+    function handleItemScan(codeText) {
+      const normalized = String(codeText).trim();
+      // Najdeme položku podle EAN nebo kódu
+      const idx = items.findIndex(
+        i =>
+          i.code === normalized ||
+          i.eanQty === normalized ||
+          i.eanPack === normalized
+      );
+      if (idx === -1) {
+        alert('Položka s tímto EAN/kódem nebyla nalezena: ' + normalized);
+        return;
+      }
+      selectedIndex = idx;
+      // Filtr vyčistíme a rovnou ukážeme nalezenou položku
+      searchInput.value = normalized;
+      renderTable();
+      scanStatus.textContent = 'Naskenována položka: ' + normalized + ' – vybrána v seznamu.';
+    }
+
+    function handleQtyScan(codeText) {
+      const n = parseQuantityFromScan(codeText);
+      const text = String(codeText || '').trim();
+
+      if (n === null || n < 0) {
+        scanStatus.textContent = 'Skenovaná hodnota nelze převést na množství: ' + text;
+        alert('Z naskenovaného kódu se nepodařilo přečíst množství (čekám AI (37) nebo číslo): ' + text);
+        return;
+      }
+
+      qtyInput.value = n;
+      scanStatus.textContent = 'Nastaveno množství: ' + n + '.';
+    }
+
+    startScanBtn.addEventListener('click', () => {
+      if (scanning) {
+        stopScanner();
+      } else {
+        startScanner();
+      }
+    });
+  </script>
+</body>
+</html>
+
