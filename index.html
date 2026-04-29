@@ -969,47 +969,71 @@
       });
     }
 
+    function parseGs1AIs(raw) {
+      const text = String(raw || '').trim();
+      if (!text) return { eanPackCandidates: [], qty: null };
+
+      const compact = text.replace(/\u001d/g, '').replace(/\s+/g, '');
+      const eanPackCandidates = new Set();
+      let qty = null;
+
+      // Varianta se závorkami: (02)xxxxxxxxxxxxxx(37)yy
+      const ai02Parens = compact.match(/\(02\)(\d{14})/);
+      if (ai02Parens) {
+        const gtin14 = ai02Parens[1];
+        eanPackCandidates.add(gtin14);
+        if (gtin14.startsWith('0')) eanPackCandidates.add(gtin14.slice(1)); // EAN13
+      }
+      const ai37Parens = compact.match(/\(37\)([0-9]{1,8}(?:[.,][0-9]+)?)/);
+      if (ai37Parens) {
+        const n = Number(ai37Parens[1].replace(',', '.'));
+        if (Number.isFinite(n)) qty = n;
+      }
+
+      // Varianta bez závorek (GS1-128 raw), často začíná ]C1
+      // AI 02 má fixních 14 číslic
+      const noParens02 = compact.match(/(?:^|\]C1)02(\d{14})/);
+      if (noParens02) {
+        const gtin14 = noParens02[1];
+        eanPackCandidates.add(gtin14);
+        if (gtin14.startsWith('0')) eanPackCandidates.add(gtin14.slice(1));
+      }
+      // AI 37 je proměnné délky, na etiketách bývá často na konci
+      const noParens37 = compact.match(/(?:^|\]C1|[0-9])37([0-9]{1,8})$/);
+      if (noParens37 && qty === null) {
+        const n = Number(noParens37[1]);
+        if (Number.isFinite(n)) qty = n;
+      }
+
+      return { eanPackCandidates: Array.from(eanPackCandidates), qty };
+    }
+
     function parseQuantityFromScan(raw) {
       const text = String(raw || '').trim();
       if (!text) return null;
 
-      // GS1 (AI (37)) může být ve tvaru: (37) 12.000 nebo (37)12,000
-      const m37 = text.match(/\(?37\)?\s*([0-9.,]+)/);
-      if (m37) {
-        const n = Number(m37[1].replace(',', '.'));
-        return Number.isFinite(n) ? n : null;
-      }
+      const parsed = parseGs1AIs(text);
+      if (parsed.qty !== null) return parsed.qty;
 
-      // Fallback: pokud je to čisté číslo
+      // Fallback: pokud skener vrátí jen samotné číslo množství
       const n = Number(text.replace(',', '.'));
       return Number.isFinite(n) ? n : null;
     }
 
     function getItemScanCandidates(raw) {
       const text = String(raw || '').trim();
-      if (!text) return [];
+      const parsed = parseGs1AIs(text);
+      const candidates = new Set();
 
-      const candidates = new Set([text]);
+      // Preferujeme AI (02) pro EAN balení
+      parsed.eanPackCandidates.forEach(v => candidates.add(v));
+
+      // Fallbacky: ruční sken klasického EAN/kódu položky
+      if (text) candidates.add(text);
       const compact = text.replace(/\u001d/g, '').replace(/\s+/g, '');
-      candidates.add(compact);
+      if (compact) candidates.add(compact);
 
-      // GS1 AI (02) = GTIN obsažené položky (často EAN balení)
-      // Příklady: "(02)08594044360029(37)12" nebo "]C102085940443600293712"
-      const ai02Parens = compact.match(/\(02\)(\d{13,14})/);
-      if (ai02Parens) {
-        const gtin = ai02Parens[1];
-        candidates.add(gtin);
-        if (gtin.length === 14 && gtin.startsWith('0')) candidates.add(gtin.slice(1));
-      }
-
-      const gs1NoParens = compact.match(/(?:^|\]C1)02(\d{14})/);
-      if (gs1NoParens) {
-        const gtin = gs1NoParens[1];
-        candidates.add(gtin);
-        if (gtin.startsWith('0')) candidates.add(gtin.slice(1));
-      }
-
-      return Array.from(candidates).map(v => String(v).trim()).filter(Boolean);
+      return Array.from(candidates);
     }
 
     async function startScanner() {
@@ -1189,6 +1213,15 @@
     function handleItemScan(codeText) {
       const normalized = String(codeText).trim();
       const candidates = getItemScanCandidates(codeText);
+      const parsed = parseGs1AIs(codeText);
+
+      // U SSCC etikety chceme použít barcode s AI (02)
+      if (normalized.includes('(00)') && parsed.eanPackCandidates.length === 0) {
+        alert('Byl načten SSCC kód (00). Pro výběr položky naskenujte barcode s prefixem (02).');
+        scanStatus.textContent = 'Načten (00). Čekám barcode s (02) pro EAN balení.';
+        return;
+      }
+
       // Najdeme položku podle EAN/kódu nebo podle AI (02) z GS1 kódu
       const idx = items.findIndex(i =>
         candidates.includes(String(i.code || '').trim()) ||
@@ -1207,12 +1240,19 @@
     }
 
     function handleQtyScan(codeText) {
+      const parsed = parseGs1AIs(codeText);
       const n = parseQuantityFromScan(codeText);
       const text = String(codeText || '').trim();
 
       if (n === null || n < 0) {
         scanStatus.textContent = 'Skenovaná hodnota nelze převést na množství: ' + text;
-        alert('Z naskenovaného kódu se nepodařilo přečíst množství (čekám AI (37) nebo číslo): ' + text);
+        alert('Z naskenovaného kódu se nepodařilo přečíst množství. Skenujte barcode s prefixem (37).');
+        return;
+      }
+
+      if (text.includes('(00)') && parsed.qty === null) {
+        alert('Načten SSCC kód (00). Pro množství naskenujte barcode s prefixem (37).');
+        scanStatus.textContent = 'Načten (00). Čekám barcode s (37) pro množství.';
         return;
       }
 
