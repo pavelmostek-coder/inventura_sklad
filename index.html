@@ -985,6 +985,33 @@
       return Number.isFinite(n) ? n : null;
     }
 
+    function getItemScanCandidates(raw) {
+      const text = String(raw || '').trim();
+      if (!text) return [];
+
+      const candidates = new Set([text]);
+      const compact = text.replace(/\u001d/g, '').replace(/\s+/g, '');
+      candidates.add(compact);
+
+      // GS1 AI (02) = GTIN obsažené položky (často EAN balení)
+      // Příklady: "(02)08594044360029(37)12" nebo "]C102085940443600293712"
+      const ai02Parens = compact.match(/\(02\)(\d{13,14})/);
+      if (ai02Parens) {
+        const gtin = ai02Parens[1];
+        candidates.add(gtin);
+        if (gtin.length === 14 && gtin.startsWith('0')) candidates.add(gtin.slice(1));
+      }
+
+      const gs1NoParens = compact.match(/(?:^|\]C1)02(\d{14})/);
+      if (gs1NoParens) {
+        const gtin = gs1NoParens[1];
+        candidates.add(gtin);
+        if (gtin.startsWith('0')) candidates.add(gtin.slice(1));
+      }
+
+      return Array.from(candidates).map(v => String(v).trim()).filter(Boolean);
+    }
+
     async function startScanner() {
       if (scanning) {
         await stopScanner();
@@ -1161,12 +1188,12 @@
 
     function handleItemScan(codeText) {
       const normalized = String(codeText).trim();
-      // Najdeme položku podle EAN nebo kódu
-      const idx = items.findIndex(
-        i =>
-          i.code === normalized ||
-          i.eanQty === normalized ||
-          i.eanPack === normalized
+      const candidates = getItemScanCandidates(codeText);
+      // Najdeme položku podle EAN/kódu nebo podle AI (02) z GS1 kódu
+      const idx = items.findIndex(i =>
+        candidates.includes(String(i.code || '').trim()) ||
+        candidates.includes(String(i.eanQty || '').trim()) ||
+        candidates.includes(String(i.eanPack || '').trim())
       );
       if (idx === -1) {
         alert('Položka s tímto EAN/kódem nebyla nalezena: ' + normalized);
